@@ -2,6 +2,14 @@ import './style.css'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import * as dat from 'lil-gui'
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
+
+/**
+ * Base
+ */
+// Canvas
+const canvas = document.querySelector('canvas.webgl')
 
 // Scene
 const scene = new THREE.Scene()
@@ -11,102 +19,129 @@ const scene = new THREE.Scene()
  */
 const textureLoader = new THREE.TextureLoader()
 
-const doorColorTexture = textureLoader.load('/textures/door/color.jpg')
-const doorAlphaTexture = textureLoader.load('/textures/door/alpha.jpg')
-const doorAmbientOcclusionTexture = textureLoader.load('/textures/door/ambientOcclusion.jpg')
-const doorHeightTexture = textureLoader.load('/textures/door/height.jpg')
-const doorNormalTexture = textureLoader.load('/textures/door/normal.jpg')
-const doorMetalnessTexture = textureLoader.load('/textures/door/metalness.jpg')
-const doorRoughnessTexture = textureLoader.load('/textures/door/roughness.jpg')
-const matcapTexture = textureLoader.load('/textures/matcaps/3.png')
-const gradientTexture = textureLoader.load('/textures/gradients/3.jpg')
-
-const cubeTextureLoader = new THREE.CubeTextureLoader()
-
-const environmentMapTexture = cubeTextureLoader.load([
-    '/textures/environmentMaps/1/px.jpg',
-    '/textures/environmentMaps/1/nx.jpg',
-    '/textures/environmentMaps/1/py.jpg',
-    '/textures/environmentMaps/1/ny.jpg',
-    '/textures/environmentMaps/1/pz.jpg',
-    '/textures/environmentMaps/1/nz.jpg'
-])
+const matcapTextures = []
+const numberTextures = 8
+const params = {
+    currentIndex: 2
+}
+for (let i = 1; i <= numberTextures; i++) {
+    matcapTextures.push(textureLoader.load(`/textures/matcaps/${i}.png`))
+}
 
 /**
- * Objects
+ * Object
  */
-const material = new THREE.MeshStandardMaterial()
-material.metalness = 0.7
-material.roughness = 0.2
-material.envMap = environmentMapTexture
+const donutGeometry = new THREE.TorusGeometry(0.3, 0.2, 20, 45)
+const material = new THREE.MeshMatcapMaterial({ matcap: matcapTextures[params.currentIndex - 1] })
+const donuts = [];
 
-const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(0.5, 16, 16),
-    material
+for (let i = 0; i < 100; i++) {
+    const donut = new THREE.Mesh(donutGeometry, material)
+    randomPos(donut)
+    scene.add(donut)
+    donuts.push(donut)
+}
+
+function randomPos(obj) {
+    obj.position.x = (Math.random() - 0.5) * 10
+    obj.position.y = (Math.random() - 0.5) * 10
+    obj.position.z = (Math.random() - 0.5) * 10
+    obj.rotation.x = Math.random() * Math.PI
+    obj.rotation.y = Math.random() * Math.PI
+    const scale = Math.random()
+    obj.scale.set(scale, scale, scale)
+}
+
+params.resetPos = () => {
+    donuts.forEach((donut) => {
+        randomPos(donut)
+    });
+}
+/**
+ * Fonts
+ */
+const fontLoader = new FontLoader()
+
+fontLoader.load(
+    '/fonts/helvetiker_regular.typeface.json',
+    (font) => {
+        const textGeometry = new TextGeometry(
+            'Hello, \nWorld.',
+            {
+                font: font,
+                size: 0.5,
+                height: 0.2,
+                curveSegments: 12,
+                bevelEnabled: true,
+                bevelThickness: 0.03,
+                bevelSize: 0.02,
+                bevelOffset: 0,
+                bevelSegments: 5
+            }
+        )
+        textGeometry.center()
+        const text = new THREE.Mesh(textGeometry, material)
+        scene.add(text)
+    }
 )
-sphere.position.x = - 1.5
-
-const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(1, 1),
-    material
-)
-
-const torus = new THREE.Mesh(
-    new THREE.TorusGeometry(0.3, 0.2, 16, 32),
-    material
-)
-torus.position.x = 1.5
-
-scene.add(sphere, plane, torus)
 
 /**
- * Lights
+ * Sizes
  */
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
-scene.add(ambientLight)
-
-const pointLight = new THREE.PointLight(0xffffff, 0.5)
-pointLight.position.x = 2
-pointLight.position.y = 3
-pointLight.position.z = 4
-scene.add(pointLight)
-
-// Sizes
 const sizes = {
     width: window.innerWidth,
     height: window.innerHeight
 }
 
-// Camera
-const camera = new THREE.PerspectiveCamera(100, sizes.width / sizes.height)
-camera.position.z = 4
-scene.add(camera)
+window.addEventListener('resize', () => {
+    // Update sizes
+    sizes.width = window.innerWidth
+    sizes.height = window.innerHeight
 
-// Renderer
-const canvas = document.querySelector('canvas.webgl')
-const renderer = new THREE.WebGLRenderer({
-    canvas: canvas
+    // Update camera
+    camera.aspect = sizes.width / sizes.height
+    camera.updateProjectionMatrix()
+
+    // Update renderer
+    renderer.setSize(sizes.width, sizes.height)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 })
-renderer.setSize(sizes.width, sizes.height)
-renderer.render(scene, camera)
+
+/**
+ * Camera
+ */
+// Base camera
+const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
+camera.position.z = 3
+scene.add(camera)
 
 // Controls
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
 
-// Animate
+/**
+ * Renderer
+ */
+const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    antialias: true
+})
+renderer.setSize(sizes.width, sizes.height)
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+
+/**
+ * Animate
+ */
 const clock = new THREE.Clock()
+
 const tick = () => {
     const elapsedTime = clock.getElapsedTime()
 
-    // Update objects
-    sphere.rotation.y = 0.1 * elapsedTime
-    plane.rotation.y = 0.1 * elapsedTime
-    torus.rotation.y = 0.1 * elapsedTime
+    donuts.forEach((donut) => {
+        donut.rotation.x += 0.01 * Math.random()
+        donut.rotation.y += 0.01 * Math.random()
 
-    sphere.rotation.x = 0.15 * elapsedTime
-    plane.rotation.x = 0.15 * elapsedTime
-    torus.rotation.x = 0.15 * elapsedTime
+    })
 
     // Update controls
     controls.update()
@@ -118,49 +153,13 @@ const tick = () => {
     window.requestAnimationFrame(tick)
 }
 
-// Cursor
-const cursor = {
-    x: 0,
-    y: 0
-}
+// Debug
+const gui = new dat.GUI()
 
-window.addEventListener('mousemove', (event) => {
-    cursor.x = event.clientX / sizes.width - 0.5
-    cursor.y = -(event.clientY / sizes.height - 0.5)
+gui.add(camera.position, 'z').min(2).max(5).step(0.2).name('Camera')
+gui.add(params, 'currentIndex').min(1).max(8).step(1).name('Texture').onChange(() => {
+    material.matcap = matcapTextures[params.currentIndex - 1]
 })
-
-window.addEventListener('resize', () => {
-    // Update sizes
-    sizes.width = window.innerWidth
-    sizes.height = window.innerHeight
-    camera.aspect = sizes.width / sizes.height
-    camera.updateProjectionMatrix()
-    renderer.setSize(sizes.width, sizes.height)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-})
-
-window.addEventListener('dblclick', () => {
-    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement
-
-    if (!fullscreenElement) {
-        if (canvas.requestFullscreen) {
-            canvas.requestFullscreen()
-        }
-        else if (canvas.webkitRequestFullscreen) {
-            canvas.webkitRequestFullscreen()
-        }
-    }
-    else {
-        if (document.exitFullscreen) {
-            document.exitFullscreen()
-        }
-        else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen()
-        }
-    }
-})
+gui.add(params, 'resetPos')
 
 tick()
-
-// Debug
-// const gui = new dat.GUI({ closed: true })
