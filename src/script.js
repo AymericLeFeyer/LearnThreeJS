@@ -1,23 +1,17 @@
 import './style.css'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import * as dat from 'lil-gui'
 
 // Scene
 const scene = new THREE.Scene()
 
 // Objects
-const geometry = new THREE.SphereGeometry(1, 32, 32)
-const material = new THREE.MeshNormalMaterial({ wireframe: true })
+const geometry = new THREE.BoxGeometry(1, 1, 1)
+const material = new THREE.MeshNormalMaterial({ wireframe: false })
 const mesh = new THREE.Mesh(geometry, material)
 
-mesh.rotation.x = Math.PI * 0.25
-mesh.rotation.y = Math.PI * 0.25
-
 scene.add(mesh)
-
-// Axes helper
-const axesHelper = new THREE.AxesHelper(2)
-// scene.add(axesHelper)
 
 // Sizes
 const sizes = {
@@ -105,5 +99,15 @@ window.addEventListener('dblclick', () => {
     }
 })
 
-
 tick()
+
+// Debug
+const gui = new dat.GUI({ closed: true })
+gui.add(mesh.position, 'y')
+    .min(- 3)
+    .max(3)
+    .step(0.01)
+    .name('elevation')
+
+gui.add(mesh, 'visible')
+gui.add(material, 'wireframe')
