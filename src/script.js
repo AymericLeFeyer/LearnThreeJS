@@ -30,7 +30,7 @@ for (let i = 1; i <= numberTextures; i++) {
 let mixers = []
 
 const materialSilver = new THREE.MeshMatcapMaterial({ matcap: matcapTextures[2] })
-const materialOrange = new THREE.MeshMatcapMaterial({ matcap: matcapTextures[4] })
+const materialOrange = new THREE.MeshMatcapMaterial({ matcap: matcapTextures[1] })
 
 /**
  * Models
