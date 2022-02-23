@@ -3,6 +3,8 @@ import * as THREE from 'three'
 import { FontService } from "./services/font"
 import { DonutModel } from "./models/donuts"
 import { Camera } from "./cameras/camera"
+import { GLTFService } from './services/gltf'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 /**
  * Base
@@ -21,31 +23,63 @@ const textureLoader = new THREE.TextureLoader()
 
 const matcapTextures = []
 const numberTextures = 8
-const params = {
-    currentIndex: 2
-}
 for (let i = 1; i <= numberTextures; i++) {
     matcapTextures.push(textureLoader.load(`/textures/matcaps/${i}.png`))
 }
 
-const material = new THREE.MeshMatcapMaterial({ matcap: matcapTextures[params.currentIndex - 1] })
+let mixers = []
+
+const materialSilver = new THREE.MeshMatcapMaterial({ matcap: matcapTextures[2] })
+const materialOrange = new THREE.MeshMatcapMaterial({ matcap: matcapTextures[4] })
 
 /**
  * Models
  */
-const donutModel = new DonutModel(scene, material);
+const donutModel = new DonutModel(scene, materialOrange);
 
 /**
  * Services
  */
 const fontService = new FontService(scene);
+const gltfService = new GLTFService(scene);
 
 /**
  * Objects
  */
 donutModel.initializeDonuts()
-fontService.addFontGeometry("Salut", material)
+fontService.addFontGeometry("Flutter <3", materialSilver, {
+    position: {
+        x: 1,
+        y: 0,
+        z: 0
+    }
+})
 
+gltfService.addToScene('models/flutter.glb', {
+    position: {
+        x: -1.5,
+        y: -1,
+        z: 0
+    }
+}).then((mixer) => {
+    mixers.push(mixer)
+})
+
+const gltfLoader = new GLTFLoader()
+
+let mixer = null
+
+// gltfLoader.load(
+//     '/models/flutter.glb',
+//     (gltf) => {
+//         scene.add(gltf.scene)
+
+//         // Animation
+//         mixer = new THREE.AnimationMixer(gltf.scene)
+//         const action = mixer.clipAction(gltf.animations[0])
+//         action.play()
+//     }
+// )
 
 /**
  * Sizes
@@ -70,6 +104,39 @@ window.addEventListener('resize', () => {
 })
 
 /**
+ * Floor
+ */
+const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(10, 10),
+    new THREE.MeshStandardMaterial({
+        color: '#444444',
+        metalness: 0,
+        roughness: 0.5
+    })
+)
+floor.receiveShadow = true
+floor.rotation.x = - Math.PI * 0.5
+floor.position.y = 0
+// scene.add(floor)
+
+/**
+ * Lights
+ */
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
+scene.add(ambientLight)
+
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6)
+directionalLight.castShadow = true
+directionalLight.shadow.mapSize.set(1024, 1024)
+directionalLight.shadow.camera.far = 15
+directionalLight.shadow.camera.left = - 7
+directionalLight.shadow.camera.top = 7
+directionalLight.shadow.camera.right = 7
+directionalLight.shadow.camera.bottom = - 7
+directionalLight.position.set(5, 5, 5)
+scene.add(directionalLight)
+
+/**
  * Camera
  */
 // Base camera
@@ -90,16 +157,29 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 /**
  * Animate
  */
-// const clock = new THREE.Clock()
+const clock = new THREE.Clock()
+let previousTime = 0
 
 const tick = () => {
-    // const elapsedTime = clock.getElapsedTime()
+    const elapsedTime = clock.getElapsedTime()
+    const deltaTime = elapsedTime - previousTime
+    previousTime = elapsedTime
 
     donutModel.update();
     camera.update();
 
     // Render
     renderer.render(scene, camera.get())
+
+    // Mixers
+    mixers.forEach((mixer) => {
+        mixer.update(deltaTime)
+    })
+
+    // Model animation
+    if (mixer) {
+        mixer.update(deltaTime)
+    }
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)

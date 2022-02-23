@@ -4,13 +4,15 @@ export class DonutModel {
     donutGeometry = new THREE.TorusGeometry(0.3, 0.2, 20, 45)
     donuts = [];
 
+    numberDonuts = 100
+
     constructor(scene, material) {
         this.scene = scene;
         this.material = material
     }
 
     initializeDonuts() {
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < this.numberDonuts; i++) {
             const donut = new THREE.Mesh(this.donutGeometry, this.material)
             this.randomPos(donut)
             this.scene.add(donut)

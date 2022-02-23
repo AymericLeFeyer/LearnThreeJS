@@ -16,7 +16,7 @@ export class FontService {
         this.font = await this.fontLoader.loadAsync(this.fontSource)
     }
 
-    async addFontGeometry(text, material) {
+    async addFontGeometry(text, material, props) {
 
         if (this.font == null) {
             await this.loadFont();
@@ -26,17 +26,23 @@ export class FontService {
             text,
             {
                 font: this.font,
-                size: 0.5,
-                height: 0.2,
+                size: props?.size ?? 0.5,
+                height: props?.height ?? 0.2,
                 curveSegments: 12,
                 bevelEnabled: true,
                 bevelThickness: 0.03,
                 bevelSize: 0.02,
                 bevelOffset: 0,
-                bevelSegments: 5
+                bevelSegments: 5,
             }
         )
         textGeometry.center()
-        this.scene.add(new THREE.Mesh(textGeometry, material))
+        const mesh = new THREE.Mesh(textGeometry, material)
+        mesh.position.x = props?.position?.x ?? 0
+        mesh.position.y = props?.position?.y ?? 0
+        mesh.position.z = props?.position?.z ?? 0
+        this.scene.add(mesh)
+
+        return mesh
     }
 }
